@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Dados</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .card {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            font-weight: 600;
+        }
+
+        .table-responsive {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .table thead th {
+            position: sticky;
+            top: 0;
+            background-color: #198754;
+            color: white;
+            z-index: 10;
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(25, 135, 84, 0.1);
+        }
+
+        #searchInput {
+            border: 1px solid #ced4da;
+            transition: all 0.3s;
+        }
+
+        #searchInput:focus {
+            border-color: #198754;
+            box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+        }
+
+        .action-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            margin: 0 2px;
+        }
+
+        .btn-success {
+            background-color: #198754;
+            border-color: #198754;
+        }
+
+        .btn-success:hover {
+            background-color: #157347;
+            border-color: #146c43;
+        }
+
+        .modal-header {
+            padding: 1rem 1.5rem;
+        }
+
+        .dias-aniversario {
+            font-weight: bold;
+            text-align: center;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        .dias-aniversario.hoje {
+            color: #fff;
+            background-color: #dc3545;
+            animation: pulse 1.5s infinite;
+        }
+
+        .dias-aniversario.proximo {
+            color: #fff;
+            background-color: #fd7e14;
+        }
+
+        .dias-aniversario.em-breve {
+            color: #fff;
+            background-color: #ffc107;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .table-responsive {
+                max-height: 60vh;
+            }
+
+            .card-header h4 {
+                font-size: 1.2rem;
+            }
+
+            #searchInput,
+            #filterColumn,
+            #exportBtn {
+                margin-bottom: 10px;
+            }
+
+            .pagination {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid mt-3">
+        <div class="card">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Consulta de Dados</h4>
+                <button id="addBtn" class="btn btn-light btn-sm">
+                    <i class="bi bi-plus-circle"></i> Adicionar
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="text" id="searchInput" class="form-control"
+                            placeholder="Pesquisar em todos os campos...">
+                    </div>
+                    <div class="col-md-3">
+                        <select id="filterColumn" class="form-select">
+                            <option value="all">Todos os campos</option>
+                            <option value="0">Nome</option>
+                            <option value="1">CPF</option>
+                            <option value="2">Idade</option>
+                            <option value="3">Mãe</option>
+                            <option value="4">Endereço</option>
+                            <option value="5">Data de Nascimento</option>
+                            <option value="6">Telefone</option>
+                            <option value="7">Dias para Aniversário</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button id="exportBtn" class="btn btn-outline-success w-100">
+                            <i class="bi bi-download"></i> Exportar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="dataTable" class="table table-striped table-bordered">
+                        <thead class="table-success">
+                            <tr>
+                                <th>Nome Completo</th>
+                                <th>CPF</th>
+                                <th>Idade</th>
+                                <th>Mãe</th>
+                                <th>Endereço</th>
+                                <th>Data de Nascimento</th>
+                                <th>Telefone</th>
+                                <th>Dias para Aniversário</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between mt-3">
+                    <div class="text-muted" id="resultCount">0 registros encontrados</div>
+                    <div class="pagination">
+                        <button id="prevPage" class="btn btn-sm btn-outline-success">
+                            <i class="bi bi-chevron-left"></i> Anterior
+                        </button>
+                        <span id="pageInfo" class="mx-2">Página 1</span>
+                        <button id="nextPage" class="btn btn-sm btn-outline-success">
+                            Próxima <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para adicionar/editar dados -->
+    <div class="modal fade" id="dataModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="modalTitle">Adicionar Novo Registro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="dataForm">
+                        <input type="hidden" id="editIndex">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="nome" class="form-label">Nome Completo</label>
+                                <input type="text" class="form-control" id="nome" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="cpf" class="form-label">CPF</label>
+                                <input type="text" class="form-control" id="cpf" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="idade" class="form-label">Idade</label>
+                                <input type="number" class="form-control" id="idade" required>
+                            </div>
+                            <div class="col-md-9">
+                                <label for="mae" class="form-label">Mãe</label>
+                                <input type="text" class="form-control" id="mae" required>
+                            </div>
+                            <div class="col-12">
+                                <label for="endereco" class="form-label">Endereço</label>
+                                <input type="text" class="form-control" id="endereco" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="dataNasc" class="form-label">Data de Nascimento</label>
+                                <input type="date" class="form-control" id="dataNasc" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="telefone" class="form-label">Telefone</label>
+                                <input type="tel" class="form-control" id="telefone" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="saveBtn" class="btn btn-success">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            let allData = [];
+            const rowsPerPage = 15;
+            let currentPage = 1;
+            let filteredData = [];
+            const STORAGE_KEY = 'dadosPessoaisApp';
+            const CACHE_EXPIRATION_DAYS = 1;
+            const dataModal = new bootstrap.Modal(document.getElementById('dataModal'));
+            let searchTimeout;
+
+            // Inicialização
+            loadData();
+            loadUserPreferences();
+            setupEventListeners();
+
+            // Função para parse de datas
+            function parseDateString(dateString) {
+                if (!dateString) return null;
+
+                // Se for formato YYYY-MM-DD (input date)
+                if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+                    const partes = dateString.split('-');
+                    const ano = parseInt(partes[0]);
+                    const mes = parseInt(partes[1]) - 1; // meses são 0-indexados
+                    const dia = parseInt(partes[2]);
+                    if (!isNaN(dia) && !isNaN(mes) && !isNaN(ano)) {
+                        return new Date(ano, mes, dia);
+                    }
+                }
+
+                // Se for formato DD/MM/YYYY ou DD-MM-YYYY
+                if (/^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(dateString)) {
+                    const partes = dateString.split(/[\/-]/);
+                    const dia = parseInt(partes[0]);
+                    const mes = parseInt(partes[1]) - 1; // meses são 0-indexados
+                    const ano = parseInt(partes[2]);
+                    if (!isNaN(dia) && !isNaN(mes) && !isNaN(ano)) {
+                        return new Date(ano, mes, dia);
+                    }
+                }
+
+                return null;
+            }
+
+            // Função para calcular dias até o aniversário (corrigida)
+            function calcularDiasAniversario(dataNasc) {
+                if (!dataNasc) return '';
+
+                const dateObj = parseDateString(dataNasc);
+                if (!dateObj) return '';
+
+                const hoje = new Date();
+                hoje.setHours(0, 0, 0, 0); // Ignorar horas para comparação
+
+                const anoAtual = hoje.getFullYear();
+
+                // Criar data do próximo aniversário (mesmo dia/mês, ano atual ou próximo)
+                const proxAniversario = new Date(anoAtual, dateObj.getMonth(), dateObj.getDate());
+                proxAniversario.setHours(0, 0, 0, 0);
+
+                // Se o aniversário já passou este ano, considerar próximo ano
+                if (proxAniversario < hoje) {
+                    proxAniversario.setFullYear(anoAtual + 1);
+                }
+
+                // Calcular diferença em dias
+                const diffTime = proxAniversario - hoje;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                // Classificação visual para aniversários próximos
+                if (diffDays === 0) {
+                    return '<span class="dias-aniversario hoje">Hoje!</span>';
+                } else if (diffDays <= 7) {
+                    return `<span class="dias-aniversario proximo">${diffDays}</span>`;
+                } else if (diffDays <= 30) {
+                    return `<span class="dias-aniversario em-breve">${diffDays}</span>`;
+                }
+
+                return `<span class="dias-aniversario">${diffDays}</span>`;
+            }
+
+            // Carregar dados
+            function loadData() {
+                const cachedData = getCachedData();
+
+                if (cachedData && cachedData.length > 0) {
+                    allData = cachedData;
+                    filteredData = [...allData];
+                    updateTable();
+                    updateResultCount();
+
+                    // Carrega dados atualizados em segundo plano
+                    loadFromCSV();
+                } else {
+                    loadFromCSV();
+                }
+            }
+
+            // Carregar do CSV
+            function loadFromCSV() {
+                Papa.parse("dados.csv", {
+                    download: true,
+                    header: true,
+                    delimiter: ";",
+                    complete: function (results) {
+                        processLoadedData(results.data);
+                        saveDataToCache(allData);
+                    },
+                    error: function (error) {
+                        console.error("Erro ao carregar dados:", error);
+                        alert("Erro ao carregar os dados. Verifique o console para mais detalhes.");
+                    }
+                });
+            }
+
+            // Processar dados carregados
+            function processLoadedData(rawData) {
+                allData = rawData.map(row => ({
+                    nome: row['NOME COMPLETO'] || '',
+                    cpf: row['CPF'] || '',
+                    idade: row['IDADE'] || '',
+                    mae: row['MÃE'] || '',
+                    endereco: row['ENDEREÇO'] || '',
+                    dataNasc: formatDateForStorage(row['DATA DE NAS']),
+                    telefone: row['TELEFONE'] || '',
+                    diasAniversario: calcularDiasAniversario(row['DATA DE NAS'])
+                }));
+
+                // Adiciona dados já existentes no Local Storage que não estão no CSV
+                const storedData = getCachedData() || [];
+                const newEntries = storedData.filter(storedItem =>
+                    !allData.some(csvItem => csvItem.cpf === storedItem.cpf)
+                );
+
+                allData = [...allData, ...newEntries];
+                filteredData = [...allData];
+                updateTable();
+                updateResultCount();
+                saveDataToCache(allData);
+            }
+
+            // Obter dados do cache
+            function getCachedData() {
+                const storedData = localStorage.getItem(STORAGE_KEY);
+                if (!storedData) return null;
+
+                try {
+                    const parsedData = JSON.parse(storedData);
+
+                    if (isCacheExpired(parsedData.timestamp)) {
+                        localStorage.removeItem(STORAGE_KEY);
+                        return null;
+                    }
+
+                    return parsedData.data;
+                } catch (e) {
+                    console.error("Erro ao ler cache:", e);
+                    localStorage.removeItem(STORAGE_KEY);
+                    return null;
+                }
+            }
+
+            // Verificar se o cache expirou
+            function isCacheExpired(timestamp) {
+                const now = new Date();
+                const cacheDate = new Date(timestamp);
+                const diffDays = (now - cacheDate) / (1000 * 60 * 60 * 24);
+                return diffDays > CACHE_EXPIRATION_DAYS;
+            }
+
+            // Salvar dados no cache
+            function saveDataToCache(data) {
+                const storageData = {
+                    data: data,
+                    timestamp: new Date().toISOString()
+                };
+
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
+                } catch (e) {
+                    console.error("Erro ao salvar no cache:", e);
+                    if (e.name === 'QuotaExceededError') {
+                        clearOldCache();
+                        saveDataToCache(data);
+                    }
+                }
+            }
+
+            // Limpar cache antigo
+            function clearOldCache() {
+                // Implementação básica - pode ser melhorada
+                localStorage.removeItem(STORAGE_KEY);
+                console.log("Cache antigo limpo para liberar espaço");
+            }
+
+            // Salvar preferências do usuário
+            function saveUserPreferences() {
+                const preferences = {
+                    filterColumn: $('#filterColumn').val(),
+                    searchTerm: $('#searchInput').val(),
+                    page: currentPage,
+                    rowsPerPage: rowsPerPage
+                };
+                localStorage.setItem(`${STORAGE_KEY}_prefs`, JSON.stringify(preferences));
+            }
+
+            // Carregar preferências do usuário
+            function loadUserPreferences() {
+                const prefs = localStorage.getItem(`${STORAGE_KEY}_prefs`);
+                if (!prefs) return;
+
+                try {
+                    const parsedPrefs = JSON.parse(prefs);
+                    $('#filterColumn').val(parsedPrefs.filterColumn || 'all');
+                    $('#searchInput').val(parsedPrefs.searchTerm || '');
+
+                    setTimeout(() => {
+                        if (parsedPrefs.searchTerm) {
+                            filterData();
+                        }
+                        currentPage = parsedPrefs.page || 1;
+                        updateTable();
+                    }, 100);
+                } catch (e) {
+                    console.error("Erro ao carregar preferências:", e);
+                }
+            }
+
+            // Atualizar tabela
+            function updateTable() {
+                const startIndex = (currentPage - 1) * rowsPerPage;
+                const endIndex = startIndex + rowsPerPage;
+                const pageData = filteredData.slice(startIndex, endIndex);
+
+                const tableBody = $('#tableBody');
+                tableBody.empty();
+
+                pageData.forEach((row, index) => {
+                    const globalIndex = allData.findIndex(item => item.cpf === row.cpf);
+                    const diasAniversario = calcularDiasAniversario(row.dataNasc);
+
+                    tableBody.append(`
+                        <tr>
+                            <td>${row.nome}</td>
+                            <td>${row.cpf}</td>
+                            <td>${calcularIdade(row.dataNasc)}</td>
+                            <td>${row.mae}</td>
+                            <td>${row.endereco}</td>
+                            <td>${formatDateForDisplay(row.dataNasc)}</td>
+                            <td>${row.telefone}</td>
+                            <td>${diasAniversario}</td>
+                            <td class="text-nowrap">
+                                <button class="btn btn-sm btn-outline-primary action-btn edit-btn" data-index="${globalIndex}">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger action-btn delete-btn" data-index="${globalIndex}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `);
+                });
+
+                updatePagination();
+                saveUserPreferences();
+            }
+
+            // Adicionar novo registro
+            function addNewRecord() {
+                $('#editIndex').val('');
+                $('#dataForm')[0].reset();
+                $('#modalTitle').text('Adicionar Novo Registro');
+                dataModal.show();
+            }
+
+            // Editar registro
+            function editRecord(index) {
+                const record = allData[index];
+                if (!record) return;
+
+                $('#editIndex').val(index);
+                $('#nome').val(record.nome);
+                $('#cpf').val(record.cpf);
+                $('#idade').val(record.idade);
+                $('#mae').val(record.mae);
+                $('#endereco').val(record.endereco);
+                $('#dataNasc').val(record.dataNasc);
+                $('#telefone').val(record.telefone);
+
+                $('#modalTitle').text('Editar Registro');
+                dataModal.show();
+            }
+
+            // Salvar registro
+            function saveRecord() {
+                const form = $('#dataForm')[0];
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+
+                const record = {
+                    nome: $('#nome').val().trim(),
+                    cpf: $('#cpf').val().trim(),
+                    idade: $('#idade').val().trim(),
+                    mae: $('#mae').val().trim(),
+                    endereco: $('#endereco').val().trim(),
+                    dataNasc: $('#dataNasc').val(),
+                    telefone: $('#telefone').val().trim(),
+                    diasAniversario: calcularDiasAniversario($('#dataNasc').val())
+                };
+
+                const editIndex = $('#editIndex').val();
+
+                if (editIndex === '') {
+                    // Adicionar novo
+                    allData.push(record);
+                } else {
+                    // Editar existente
+                    allData[editIndex] = record;
+                }
+
+                filteredData = [...allData];
+                saveDataToCache(allData);
+                updateTable();
+                dataModal.hide();
+            }
+
+            // Excluir registro
+            function deleteRecord(index) {
+                if (!confirm('Tem certeza que deseja excluir este registro?')) return;
+
+                allData.splice(index, 1);
+                filteredData = [...allData];
+                saveDataToCache(allData);
+
+                // Ajustar paginação se necessário
+                const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+                if (currentPage > totalPages && totalPages > 0) {
+                    currentPage = totalPages;
+                }
+
+                updateTable();
+            }
+
+            // Filtrar dados
+            function filterData() {
+                const searchTerm = $('#searchInput').val().toLowerCase();
+                const filterColumn = $('#filterColumn').val();
+
+                if (!searchTerm) {
+                    filteredData = [...allData];
+                } else {
+                    filteredData = allData.filter(row => {
+                        if (filterColumn === 'all') {
+                            return Object.values(row).some(value =>
+                                String(value).toLowerCase().includes(searchTerm)
+                            );
+                        } else if (filterColumn === '7') { // Coluna de dias para aniversário
+                            const diasAniversario = calcularDiasAniversario(row.dataNasc);
+                            if (searchTerm === 'hoje') {
+                                return diasAniversario.includes('Hoje');
+                            }
+                            const diasNum = parseInt(diasAniversario.replace(/[^0-9]/g, ''));
+                            return !isNaN(diasNum) && diasNum.toString() === searchTerm;
+                        } else {
+                            const columns = ['nome', 'cpf', 'idade', 'mae', 'endereco', 'dataNasc', 'telefone', 'diasAniversario'];
+                            const columnIndex = parseInt(filterColumn);
+                            const valueToSearch = String(row[columns[columnIndex]]).toLowerCase();
+                            return valueToSearch.includes(searchTerm);
+                        }
+                    });
+                }
+
+                currentPage = 1;
+                updateTable();
+                updateResultCount();
+            }
+
+            // Exportar para CSV
+            function exportToCSV() {
+                const csv = Papa.unparse(filteredData);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'dados_filtrados.csv');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            // Formatadores de data
+            function formatDateForStorage(dateString) {
+                if (!dateString) return '';
+
+                // Se já estiver no formato YYYY-MM-DD
+                if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+
+                // Converter de DD/MM/YYYY para YYYY-MM-DD
+                const parts = dateString.split('/');
+                if (parts.length === 3) {
+                    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+
+                return dateString;
+            }
+
+            function formatDateForDisplay(dateString) {
+                if (!dateString) return '';
+
+                // Converter de YYYY-MM-DD para DD/MM/YYYY
+                const parts = dateString.split('-');
+                if (parts.length === 3) {
+                    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                }
+
+                // Se já estiver no formato DD/MM/YYYY
+                if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) return dateString;
+
+                return dateString;
+            }
+
+            // Atualizar paginação
+            function updatePagination() {
+                const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+                $('#pageInfo').text(`Página ${currentPage} de ${totalPages}`);
+                $('#prevPage').prop('disabled', currentPage === 1);
+                $('#nextPage').prop('disabled', currentPage === totalPages || totalPages === 0);
+            }
+
+            // Atualizar contador de resultados
+            function updateResultCount() {
+                $('#resultCount').text(`${filteredData.length} registros encontrados`);
+            }
+
+            // Configurar event listeners
+            function setupEventListeners() {
+                // Adiciona debounce para melhorar performance da pesquisa
+                $('#searchInput').on('keyup', function () {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        filterData();
+                        // Forçar recálculo dos aniversários
+                        updateTable();
+                    }, 300);
+                });
+
+                $('#filterColumn').on('change', filterData);
+
+                $('#prevPage').on('click', function () {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        updateTable();
+                    }
+                });
+
+                $('#nextPage').on('click', function () {
+                    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        updateTable();
+                    }
+                });
+
+                $('#exportBtn').on('click', exportToCSV);
+                $('#addBtn').on('click', addNewRecord);
+                $('#saveBtn').on('click', saveRecord);
+
+                $(document).on('click', '.edit-btn', function () {
+                    const index = $(this).data('index');
+                    editRecord(index);
+                });
+
+                $(document).on('click', '.delete-btn', function () {
+                    const index = $(this).data('index');
+                    deleteRecord(index);
+                });
+
+                $(window).on('beforeunload', saveUserPreferences);
+            }
+        });
+
+        function calcularIdade(dataNascimento) {
+            // Verifica se a data de nascimento foi fornecida
+            if (!dataNascimento) return null;
+
+            // Converte a data de nascimento para um objeto Date
+            const nascimento = new Date(dataNascimento);
+
+            // Verifica se a data é válida
+            if (isNaN(nascimento.getTime())) return null;
+
+            // Obtém a data atual
+            const hoje = new Date();
+
+            // Calcula a diferença de anos
+            let idade = hoje.getFullYear() - nascimento.getFullYear();
+
+            // Ajusta a idade se ainda não fez aniversário este ano
+            const mesAtual = hoje.getMonth();
+            const mesNascimento = nascimento.getMonth();
+
+            if (mesNascimento > mesAtual ||
+                (mesNascimento === mesAtual && hoje.getDate() < nascimento.getDate())) {
+                idade--;
+            }
+
+            return idade;
+        }
+
+        // Exemplo de uso:
+        const dataNasc = '1990-05-15'; // Formato YYYY-MM-DD
+        const idade = calcularIdade(dataNasc);
+        console.log(`Você tem ${idade} anos.`);
+    </script>
+</body>
+
+</html>
